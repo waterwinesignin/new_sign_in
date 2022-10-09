@@ -6,7 +6,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
-#include  <map>
+#include <map>
 using namespace std;
 
 #define MAXSIZE    1024     //定义数据缓冲区大小
@@ -16,7 +16,7 @@ using namespace std;
 //k2-课程号， 1到5
 //ci-课次， 1到20
 //data-从文件读取的，有Gen程序随机生成的全部课程全部人员的缺勤信息
-int IsQueXi(int no, int ke, int ci, const map<int, map<int, set<int> > > &data)
+int IsAbsence(int no, int ke, int ci, const map<int, map<int, set<int> > > &data)
 {
     map<int, map<int, set<int> > >::const_iterator i1=data.find(ke);
     if(i1==data.end())
@@ -42,13 +42,13 @@ int IsQueXi(int no, int ke, int ci, const map<int, map<int, set<int> > > &data)
 
 //某门课的点名册表项
 //点名册由90个下面元素组成，每个元素表示该课程的学生当前信息
-struct XueSheng
+struct Student
 {
     int no;//学号
     int cnt;//已缺席该课程的次数
     double gailu;//该生下次缺席该课程的概率
 };
-bool MyCmp(const XueSheng& x,const XueSheng& y)
+bool MyCmp(const Student& x,const Student& y)
 {
     if(x.cnt>y.cnt)
     {
@@ -60,7 +60,7 @@ bool MyCmp(const XueSheng& x,const XueSheng& y)
     }
     return x.no<y.no;
 }
-bool MyCmp2(const XueSheng& x,const XueSheng& y)
+bool MyCmp2(const Student& x,const Student& y)
 {
     if(x.gailu>y.gailu)
     {
@@ -141,8 +141,8 @@ int main(int argc, char *argv[])
     }
     fclose(pf);
 
-    //到这里，data保存了全部课程全部人员的缺勤信息,后面通过调用函数IsQueXi可以在表data中查找某个点名是否是有效点名
-    //如何设计算法，输入（no, ke, ci)以使函数调用IsQueXi返回为真的概率最大，是后续需要完善的。
+    //到这里，data保存了全部课程全部人员的缺勤信息,后面通过调用函数IsAbsence可以在表data中查找某个点名是否是有效点名
+    //如何设计算法，输入（no, ke, ci)以使函数调用IsAbsence返回为真的概率最大，是后续需要完善的。
 
     /*
     for(map<int, map<int, set<int> > >::const_iterator i1=data.begin();i1!=data.end();i1++)
@@ -157,27 +157,27 @@ int main(int argc, char *argv[])
     }
     */
     //有5-8位同学缺席了该学期80%的课,取平均值吧
-    double quexi80=(5+6+7+8)/4.0;//无故缺席80%的人数
-    double quexi0_3=(0+1+2+3)/4.0;//其他原因缺席的人数
+    double absence80=(5+6+7+8)/4.0;//无故缺席80%的人数
+    double absence0_3=(0+1+2+3)/4.0;//其他原因缺席的人数
 
     FILE * pf2=fopen("./Test.txt", "w");
 
     int exit=0;
     //double e=0;
     int total=0;
-    int quexiTotal=0;
+    int absenceTotal=0;
 
     for(int ke=1;ke<=5;ke++)
     {
-        vector<XueSheng> xs;
+        vector<Student> xs;
         //初始化
         for(int i = 0;i<90;i++)
         {
-            XueSheng tmp;
+            Student tmp;
             tmp.no=i+1;
             tmp.cnt=0;
-            tmp.gailu=quexi80/90*0.8;
-            tmp.gailu += (1-tmp.gailu)*(quexi0_3/90);
+            tmp.gailu=absence80/90*0.8;
+            tmp.gailu += (1-tmp.gailu)*(absence0_3/90);
             xs.push_back(tmp);
         }
 
@@ -194,16 +194,16 @@ int main(int argc, char *argv[])
 
             for(int k=0;k<90;k++)
             {
-                if(iQuexiDuo > 5 && total!=0 && xs[k].gailu <= (double)quexiTotal/total)
+                if(iQuexiDuo > 5 && total!=0 && xs[k].gailu <= (double)absenceTotal/total)
                 {
                     break;
                 }
                 char line[128]={0};
                 total++;
-                if(IsQueXi(xs[k].no, ke, j, data))
+                if(IsAbsence(xs[k].no, ke, j, data))
                 {
                    xs[k].cnt++;
-                   quexiTotal++;
+                   absenceTotal++;
                    sprintf(line, "KE%d-CI%d-NO%d:QueXi?%d\n", ke, j, xs[k].no, 1);
                 }
                 else
@@ -225,13 +225,13 @@ int main(int argc, char *argv[])
 				else// if(xs[i].cnt>=1)
 				{
 					//xs[i].gailu = (quexi0_3+xs[i].cnt)/90;
-					xs[i].gailu = quexi0_3/90;
+					xs[i].gailu = absence0_3/90;
 				}				
                 //xs[i].gailu = quexi0_3/90;
             }
 
             sort(xs.begin(),xs.end(),MyCmp2);
-            if(total!=0 && xs[0].gailu <= (double)quexiTotal/total)
+            if(total!=0 && xs[0].gailu <= (double)absenceTotal/total)
             {
                 exit=true;
                 break;
@@ -246,11 +246,11 @@ int main(int argc, char *argv[])
     }
 
     char line[128]={0};
-    float e=(float)quexiTotal/total;
-    sprintf(line, "total=%d,quexiTotal=%d,E=%.2f\n", total, quexiTotal, e);
+    float e=(float)absenceTotal/total;
+    sprintf(line, "total=%d,absenceTotal=%d,E=%.2f\n", total, absenceTotal, e);
     fputs(line, pf2);
 
     fclose(pf2);
-	printf(line, "total=%d,quexiTotal=%d,E=%.2f\n", total, quexiTotal, e);
+
     return 0;
 }
