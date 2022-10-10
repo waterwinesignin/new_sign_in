@@ -237,11 +237,12 @@ int main(int argc, char *argv[])
                 break;
             }
         }
-
-        if(exit)
+        
+    
+        /*if(exit)
         {
             break;
-        }
+        }*/
 
     }
 
