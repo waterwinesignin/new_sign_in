@@ -6,252 +6,234 @@
 #include <vector>
 #include <set>
 #include <algorithm>
-#include <map>
+#include  <map>
 using namespace std;
 
 #define MAXSIZE    1024     //定义数据缓冲区大小
 
-//判断某各点名是否缺席(是否有效点名)
+//判断某个点名是否缺席(是否有效点名)
 //no-学号，1到90
 //k2-课程号， 1到5
 //ci-课次， 1到20
-//data-从文件读取的，有Gen程序随机生成的全部课程全部人员的缺勤信息
-int IsAbsence(int no, int ke, int ci, const map<int, map<int, set<int> > > &data)
+//data-从文件读取的，由Gen程序随机生成的全部课程全部人员的缺勤信息表
+int IsQueXi(int no, int ke, int ci, const map<int, map<int, set<int> > > &data)
 {
-    map<int, map<int, set<int> > >::const_iterator i1=data.find(ke);
-    if(i1==data.end())
-    {
-        return 0;
-    }
+	map<int, map<int, set<int> > >::const_iterator i1=data.find(ke);
+	if(i1==data.end())
+	{
+		return 0;
+	}
 
-    map<int, set<int> >::const_iterator i2=i1->second.find(ci);
-    if(i2==i1->second.end())
-    {
-        return 0;
-    }
+	map<int, set<int> >::const_iterator i2=i1->second.find(ci);
+	if(i2==i1->second.end())
+	{
+		return 0;
+	}
 
-    set<int>::const_iterator i3=i2->second.find(no);
-    if(i3==i2->second.end())
-    {
-        return 0;
-    }
+	set<int>::const_iterator i3=i2->second.find(no);
+	if(i3==i2->second.end())
+	{
+		return 0;
+	}
 
-    return 1;
+	return 1;
 }
 
 
 //某门课的点名册表项
 //点名册由90个下面元素组成，每个元素表示该课程的学生当前信息
-struct Student
+struct XueSheng
 {
-    int no;//学号
-    int cnt;//已缺席该课程的次数
-    double gailu;//该生下次缺席该课程的概率
+	int no;//学号
+	int cnt;//已缺席该课程的次数
+	int noCnt;//未缺席次数
+	int pro;
 };
-bool MyCmp(const Student& x,const Student& y)
-{
-    if(x.cnt>y.cnt)
-    {
-        return true;
-    }
-    if(x.cnt<y.cnt)
-    {
-        return false;
-    }
-    return x.no<y.no;
-}
-bool MyCmp2(const Student& x,const Student& y)
-{
-    if(x.gailu>y.gailu)
-    {
-        return true;
-    }
-    if(x.gailu<y.gailu)
-    {
-        return false;
-    }
-    return x.no<y.no;
-}
 
+int GetLevel(const XueSheng& x)
+{//返回越大，优先级越高
+	if(x.cnt==16)
+	{
+		return 0;
+	}
+	if(x.noCnt >= 5)
+	{		
+		return 1;
+	}
+
+	if(x.cnt>=3)
+	{
+		return 20-x.cnt; //5,6,...,17
+	}
+	//*
+	if(x.pro>=3)
+	{
+		return 20-x.cnt; //
+	}
+	//*/
+	
+	return x.cnt+1;//1或2
+}
+bool MyCmp(const XueSheng& x,const XueSheng& y)
+{
+	int levelX=GetLevel(x);
+	int levelY=GetLevel(y);
+	if(levelX!=levelY)
+	{
+		return levelX > levelY;
+	}
+
+	return x.no<y.no;
+}
 
 int main(int argc, char *argv[])
 {
-    //<课程, <课次, <缺席号集> >
-    map<int, map<int, set<int> > > data;
+	//<课程, <课次, <缺席号集> >
+	map<int, map<int, set<int> > > data;
 
-    FILE * pf=fopen("./Gen.txt", "r");
-    if(NULL==pf)
-    {
-        printf("fopen error:%s\n\a",strerror(errno));
-        exit(1);
-    }
+	FILE * pf=fopen("./Gen.txt", "r");
+	if(NULL==pf)
+	{
+		printf("fopen error:%s\n\a",strerror(errno));
+		exit(1);
+	}
 
-    while(1)
-    {
-        char line[MAXSIZE+1]={0};
-        if(NULL==fgets(line, MAXSIZE, pf))
-        {
-            break;
-        }
+	while(1)
+	{
+		char line[MAXSIZE+1]={0};
+		if(NULL==fgets(line, MAXSIZE, pf))
+		{
+			break;
+		}
 
-        //去掉空格字符
-        char *p=line;
-        while(*p)
-        {
-            if(*p=='\x20' || *p=='\t' || *p=='\n' || *p=='\r')
-            {
-                for(char *q=p;*q;q++)
-                    *q=*(q+1);
-            }
-            else
-            {
-                p++;
-            }
-        }
-        if(line[0]==0)
-        {
-            continue;
-        }
-
-        if(line[strlen(line)-1]!=',')
-        {
-            strcat(line, ",");
-        }
-
-        //2_12=17,39,57,59,64,79,
-        int ke,ci;//课号，次数
-        sscanf(line, "%d_%d=", &ke, &ci);
-        char *start=strchr(line, '=');
-        if(start==NULL)
-        {
-            continue;
-        }
-        start++;
-
-        char *end=strchr(start, ',');
-        while(end)
-        {
-            *end=0;
-
-            data[ke][ci].insert(atoi(start));
-
-            start = end+1;
-            end=strchr(start, ',');
-        }
-    }
-    fclose(pf);
-
-    //到这里，data保存了全部课程全部人员的缺勤信息,后面通过调用函数IsAbsence可以在表data中查找某个点名是否是有效点名
-    //如何设计算法，输入（no, ke, ci)以使函数调用IsAbsence返回为真的概率最大，是后续需要完善的。
-
-    /*
-    for(map<int, map<int, set<int> > >::const_iterator i1=data.begin();i1!=data.end();i1++)
-    {
-    for(map<int, set<int> >::const_iterator i2=i1->second.begin();i2!=i1->second.end();i2++)
-    {
-    for(set<int>::const_iterator i3=i2->second.begin();i3!=i2->second.end();i3++)
-    {
-    printf("%d_%d=%d\n", i1->first, i2->first, *i3);
-    }
-    }
-    }
-    */
-    //有5-8位同学缺席了该学期80%的课,取平均值吧
-    double absence80=(5+6+7+8)/4.0;//无故缺席80%的人数
-    double absence0_3=(0+1+2+3)/4.0;//其他原因缺席的人数
-
-    FILE * pf2=fopen("./Test.txt", "w");
-
-    int exit=0;
-    //double e=0;
-    int total=0;
-    int absenceTotal=0;
-
-    for(int ke=1;ke<=5;ke++)
-    {
-        vector<Student> xs;
-        //初始化
-        for(int i = 0;i<90;i++)
-        {
-            Student tmp;
-            tmp.no=i+1;
-            tmp.cnt=0;
-            tmp.gailu=absence80/90*0.8;
-            tmp.gailu += (1-tmp.gailu)*(absence0_3/90);
-            xs.push_back(tmp);
-        }
-
-		int iQuexiDuo=0;//缺席不低于2次的人数
-        for(int j=1;j<=20;j++)
-        {			
-			for(int k=0;k<90;k++)
+		//去掉空格字符
+		char *p=line;
+		while(*p)
+		{
+			if(*p=='\x20' || *p=='\t' || *p=='\n' || *p=='\r')
 			{
-				if(xs[k].cnt>=2)
-				{
-					iQuexiDuo++;
-				}
+				for(char *q=p;*q;q++)
+					*q=*(q+1);
 			}
+			else
+			{
+				p++;
+			}
+		}
+		if(line[0]==0)
+		{
+			continue;
+		}
 
-            for(int k=0;k<90;k++)
-            {
-                if(iQuexiDuo > 5 && total!=0 && xs[k].gailu <= (double)absenceTotal/total)
-                {
-                    break;
-                }
-                char line[128]={0};
-                total++;
-                if(IsAbsence(xs[k].no, ke, j, data))
-                {
-                   xs[k].cnt++;
-                   absenceTotal++;
-                   sprintf(line, "KE%d-CI%d-NO%d:QueXi?%d\n", ke, j, xs[k].no, 1);
-                }
-                else
-                {
-                   sprintf(line, "KE%d-CI%d-NO%d:QueXi?%d\n", ke, j, xs[k].no, 0);
-                }
-                fputs(line, pf2);
-            }
+		if(line[strlen(line)-1]!=',')
+		{
+			strcat(line, ",");
+		}
 
-            //调整概率
-            sort(xs.begin(),xs.end(),MyCmp);
-            int i =0;
-            for(;i<90;i++)
-            {
-				if(i<5|| i<8&&xs[i].cnt>=2)// || i<8&&xs[i].cnt>=2)
+		//2_12=17,39,57,59,64,79,
+		int ke,ci;//课号，次数
+		sscanf(line, "%d_%d=", &ke, &ci);
+		char *start=strchr(line, '=');
+		if(start==NULL)
+		{
+			continue;
+		}
+		start++;
+
+		char *end=strchr(start, ',');
+		while(end)
+		{
+			*end=0;
+
+			data[ke][ci].insert(atoi(start));
+
+			start = end+1;
+			end=strchr(start, ',');
+		}
+	}
+	fclose(pf);
+	//到这里，data保存了全部课程全部人员的缺勤信息,后面通过调用函数IsQueXi可以在表data中查找某个点名是否是有效点名
+	//如何设计算法，输入（no, ke, ci)以使函数调用IsQueXi返回为真的概率最大，是后续需要完善的。
+
+	FILE * pf2=fopen("./Test.txt", "w");
+
+	//double e=0;
+	int total=0;
+	int quexiTotal=0;
+
+	vector<XueSheng> xs;
+	//初始化
+	for(int i = 0;i<90;i++)
+	{
+		XueSheng tmp={0};
+		tmp.no=i+1;		
+		xs.push_back(tmp);
+	}
+
+	for(int ke=1;ke<=5;ke++)
+	{
+		//每门课开始前，一些变量为0
+		vector<XueSheng>::iterator it;
+		for(it=xs.begin();it!=xs.end();it++)
+		{
+			it->cnt=0;
+			it->noCnt=0;
+		}
+
+		for(int j=1;j<=20;j++)
+		{
+			sort(xs.begin(),xs.end(),MyCmp);
+			int currQueXi=0;//某次课的缺席人数
+			int mm=0;
+			for(it=xs.begin();it!=xs.end();it++,mm++)
+			{				
+				char line[128]={0};
+				total++;
+				if(IsQueXi(it->no, ke, j, data))
 				{
-					xs[i].gailu = (16-xs[i].cnt)/16.0;
+					it->cnt++;
+					quexiTotal++;
+					currQueXi++;
+					sprintf(line, "课程%d第%d次-抽检学号%d结果:缺1\n", ke, j, it->no);
 				}
-				else// if(xs[i].cnt>=1)
+				else
 				{
-					//xs[i].gailu = (quexi0_3+xs[i].cnt)/90;
-					xs[i].gailu = absence0_3/90;
-				}				
-                //xs[i].gailu = quexi0_3/90;
-            }
+					it->noCnt++;
+					sprintf(line, "课程%d第%d次-抽检学号%d结果:到0\n", ke, j, it->no);
+				}
+				fputs(line, pf2);
 
-            sort(xs.begin(),xs.end(),MyCmp2);
-            if(total!=0 && xs[0].gailu <= (double)absenceTotal/total)
-            {
-                exit=true;
-                break;
-            }
-        }
-        
-    
-        /*if(exit)
-        {
-            break;
-        }*/
+				//与课次相关的次数控制
+				static int maxQueXiCnt[]={0,7,6,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5};//E=0.30170
+				if(currQueXi >= maxQueXiCnt[j])
+				{
+					break;
+				}
 
-    }
+				if(j>=5 && mm > 10 && (double)currQueXi/90 < 0.30)
+				{
+					break;
+				}		
+			}			
+		}
 
-    char line[128]={0};
-    float e=(float)absenceTotal/total;
-    sprintf(line, "total=%d,absenceTotal=%d,E=%.2f\n", total, absenceTotal, e);
-    fputs(line, pf2);
+		for(it=xs.begin();it!=xs.end();it++)
+		{
+			if(it->cnt >= 2)
+			{
+				it->pro++;
+			}
+		}
+	}
 
-    fclose(pf2);
+	char line[128]={0};
+	float e=(float)quexiTotal/total;
+	sprintf(line, "total=%d,quexiTotal=%d,E=%.5f\n", total, quexiTotal, e);
+	fputs(line, pf2);
 
-    return 0;
+	fclose(pf2);
+
+	printf(line, "total=%d,quexiTotal=%d,E=%.5f\n", total, quexiTotal, e);
+
+	return 0;
 }
