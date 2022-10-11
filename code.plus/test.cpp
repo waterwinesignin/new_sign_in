@@ -7,7 +7,7 @@
 #include <set>
 #include <algorithm>
 #include  <map>
-#include "../Public/Public.h"
+
 using namespace std;
 
 #define MAXSIZE    1024     //定义数据缓冲区大小
@@ -80,12 +80,21 @@ double JiSuanGaiLv(int jd, int cnt, int Notcnt)
 	{//绩点4的学生(普通生)，每门课都有0-3其他原因缺席的学生
 		gailu=(1.5/90*20 - cnt)/(20-cnt-Notcnt);
 	}
-	//it->jd==5的学霸，概率维持初始值0
+	else
+	{	//it->jd==5的学霸，概率维持初始值0
+		gailu = 0;
+	}
 	return gailu;
 }
 
 int main(int argc, char *argv[])
 {
+	set<int>jd1s;//绩点1的学生集合
+	set<int>jd2s;//绩点2的学生集合
+	set<int>jd3s;//绩点3的学生集合
+	set<int>jd5s;//绩点5的学生集合
+	set<int> *pjd=NULL;
+
 	//<课程, <课次, <缺席号集> >
 	map<int, map<int, set<int> > > data;
 
@@ -95,7 +104,7 @@ int main(int argc, char *argv[])
 		printf("fopen error:%s\n\a",strerror(errno));
 		exit(1);
 	}
-
+	int in=0;
 	while(1)
 	{
 		char line[MAXSIZE+1]={0};
@@ -130,7 +139,23 @@ int main(int argc, char *argv[])
 
 		//2_12=17,39,57,59,64,79,
 		int ke,ci;//课号，次数
-		sscanf(line, "%d_%d=", &ke, &ci);
+		if(in<4)
+		{//开头4行是绩点信息
+			int tmp=0;
+			sscanf(line, "jd%d=", &tmp);
+			if(tmp==1)
+				pjd=&jd1s;
+			else if(tmp==2)
+				pjd=&jd2s;
+			else if(tmp==3)
+				pjd=&jd3s;
+			else if(tmp==5)
+				pjd=&jd5s;
+		}
+		else
+		{
+			sscanf(line, "%d_%d=", &ke, &ci);
+		}
 		char *start=strchr(line, '=');
 		if(start==NULL)
 		{
@@ -143,11 +168,20 @@ int main(int argc, char *argv[])
 		{
 			*end=0;
 
-			data[ke][ci].insert(atoi(start));
+			if(in<4)
+			{//开头4行是绩点信息
+				pjd->insert(atoi(start));
+			}
+			else
+			{
+				data[ke][ci].insert(atoi(start));
+			}
 
 			start = end+1;
 			end=strchr(start, ',');
 		}
+
+		in++;
 	}
 	fclose(pf);
 	//到这里，data保存了全部课程全部人员的缺勤信息,后面通过调用函数IsQueXi可以在表data中查找某个点名是否是有效点名
@@ -164,7 +198,17 @@ int main(int argc, char *argv[])
 	{
 		XueSheng tmp={0};
 		tmp.no=i+1;	
-		tmp.jd = GetJiDianInfo(tmp.no);
+		if(jd1s.find(tmp.no)!=jd1s.end())
+			tmp.jd = 1;
+		else if(jd2s.find(tmp.no)!=jd2s.end())
+			tmp.jd = 2;
+		else if(jd3s.find(tmp.no)!=jd3s.end())
+			tmp.jd = 3;
+		else if(jd5s.find(tmp.no)!=jd5s.end())
+			tmp.jd = 5;
+		else
+			tmp.jd = 4;
+		
 		xs.push_back(tmp);
 	}
 
@@ -204,9 +248,10 @@ int main(int argc, char *argv[])
 
 				//与课次相关的次数控制
 				//static int maxQueXiCnt[]={0,7,6,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5};//E=0.30170	
-				//static int maxQueXiCnt[]={0,7,6,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5};//E=0.30170		
 				//if(currQueXi >= maxQueXiCnt[j])
-				if(currQueXi >= 4)//这个越小，e值越大。
+				//if(currQueXi >= 4)//这个越小，e值越大。
+				static int maxQueXiCnt[]={0,8,7,6,6,5,5,5,4,4,4,4,4,4,4,4,4,4,4,4,4};
+				if(currQueXi >= maxQueXiCnt[j])
 				{
 					break;
 				}
