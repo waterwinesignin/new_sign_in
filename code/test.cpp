@@ -6,7 +6,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
-#include  <map>
+#include <map>
 using namespace std;
 
 #define MAXSIZE    1024     //定义数据缓冲区大小
@@ -16,7 +16,7 @@ using namespace std;
 //k2-课程号， 1到5
 //ci-课次， 1到20
 //data-从文件读取的，由Gen程序随机生成的全部课程全部人员的缺勤信息表
-int IsQueXi(int no, int ke, int ci, const map<int, map<int, set<int> > > &data)
+int IsAbsence(int no, int ke, int ci, const map<int, map<int, set<int> > > &data)
 {
 	map<int, map<int, set<int> > >::const_iterator i1=data.find(ke);
 	if(i1==data.end())
@@ -42,7 +42,7 @@ int IsQueXi(int no, int ke, int ci, const map<int, map<int, set<int> > > &data)
 
 //某门课的点名册表项
 //点名册由90个下面元素组成，每个元素表示该课程的学生当前信息
-struct XueSheng
+struct Student 
 {
 	int no;//学号
 	int cnt;//已缺席该课程的次数
@@ -50,7 +50,7 @@ struct XueSheng
 	int pro;
 };
 
-int GetLevel(const XueSheng& x)
+int GetLevel(const Student& x)
 {//返回越大，优先级越高
 	if(x.cnt==16)
 	{
@@ -74,7 +74,7 @@ int GetLevel(const XueSheng& x)
 	
 	return x.cnt+1;//1或2
 }
-bool MyCmp(const XueSheng& x,const XueSheng& y)
+bool MyCmp(const Student& x,const Student& y)
 {
 	int levelX=GetLevel(x);
 	int levelY=GetLevel(y);
@@ -152,20 +152,20 @@ int main(int argc, char *argv[])
 		}
 	}
 	fclose(pf);
-	//到这里，data保存了全部课程全部人员的缺勤信息,后面通过调用函数IsQueXi可以在表data中查找某个点名是否是有效点名
-	//如何设计算法，输入（no, ke, ci)以使函数调用IsQueXi返回为真的概率最大，是后续需要完善的。
+	//到这里，data保存了全部课程全部人员的缺勤信息,后面通过调用函数IsAbsence可以在表data中查找某个点名是否是有效点名
+	//如何设计算法，输入（no, ke, ci)以使函数调用IsAbsence返回为真的概率最大，是后续需要完善的。
 
 	FILE * pf2=fopen("./Test.txt", "w");
 
 	//double e=0;
 	int total=0;
-	int quexiTotal=0;
+	int absenceTotal=0;
 
-	vector<XueSheng> xs;
+	vector<Student> xs;
 	//初始化
 	for(int i = 0;i<90;i++)
 	{
-		XueSheng tmp={0};
+		Student tmp={0};
 		tmp.no=i+1;		
 		xs.push_back(tmp);
 	}
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
 	for(int ke=1;ke<=5;ke++)
 	{
 		//每门课开始前，一些变量为0
-		vector<XueSheng>::iterator it;
+		vector<Student>::iterator it;
 		for(it=xs.begin();it!=xs.end();it++)
 		{
 			it->cnt=0;
@@ -183,17 +183,17 @@ int main(int argc, char *argv[])
 		for(int j=1;j<=20;j++)
 		{
 			sort(xs.begin(),xs.end(),MyCmp);
-			int currQueXi=0;//某次课的缺席人数
+			int currabsence=0;//某次课的缺席人数
 			int mm=0;
 			for(it=xs.begin();it!=xs.end();it++,mm++)
 			{				
 				char line[128]={0};
 				total++;
-				if(IsQueXi(it->no, ke, j, data))
+				if(IsAbsence(it->no, ke, j, data))
 				{
 					it->cnt++;
-					quexiTotal++;
-					currQueXi++;
+					absenceTotal++;
+					currabsence++;
 					sprintf(line, "课程%d第%d次-抽检学号%d结果:缺1\n", ke, j, it->no);
 				}
 				else
@@ -204,13 +204,13 @@ int main(int argc, char *argv[])
 				fputs(line, pf2);
 
 				//与课次相关的次数控制
-				static int maxQueXiCnt[]={0,7,6,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5};//E=0.30170
-				if(currQueXi >= maxQueXiCnt[j])
+				static int maxabsenceCnt[]={0,7,6,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5};//E=0.30170
+				if(currabsence >= maxabsenceCnt[j])
 				{
 					break;
 				}
 
-				if(j>=5 && mm > 10 && (double)currQueXi/90 < 0.30)
+				if(j>=5 && mm > 10 && (double)currabsence/90 < 0.30)
 				{
 					break;
 				}		
@@ -227,13 +227,13 @@ int main(int argc, char *argv[])
 	}
 
 	char line[128]={0};
-	float e=(float)quexiTotal/total;
-	sprintf(line, "total=%d,quexiTotal=%d,E=%.5f\n", total, quexiTotal, e);
+	float e=(float)absenceTotal/total;
+	sprintf(line, "total=%d,absenceTotal=%d,E=%.5f\n", total, absenceTotal, e);
 	fputs(line, pf2);
 
 	fclose(pf2);
 
-	printf(line, "total=%d,quexiTotal=%d,E=%.5f\n", total, quexiTotal, e);
+	printf(line, "total=%d,absenceTotal=%d,E=%.5f\n", total, absenceTotal, e);
 
 	return 0;
 }
