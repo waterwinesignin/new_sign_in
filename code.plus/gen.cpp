@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 	//课号->课次->学号集
 	map<int, map<int,set<int> > >toFileQueXiInfos;
 
-	//绩点1的学生(学渣)缺席所有(5门)课程90%的课次
+	//等级1的学生(学渣)缺席所有(5门)课程90%的课次
 	for(set<int>::const_iterator p1=jd1s.begin();p1!=jd1s.end();p1++)
 	{
 		for(int ke=1;ke<=5;ke++)
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	//绩点2的学生(准学渣)缺席4门课程80%的课次
+	//等级2的学生(准学渣)缺席4门课程80%的课次
 	for(set<int>::const_iterator p2=jd2s.begin();p2!=jd2s.end();p2++)
 	{
 		set<int> kes;
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	//绩点3的学生(后进生)缺席1门课程80%的课次
+	//等级3的学生(后进生)缺席1门课程80%的课次
 	for(set<int>::const_iterator p3=jd3s.begin();p3!=jd3s.end();p3++)
 	{
 		int ke=rand()%5+1;
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 	
 	FILE * pf=fopen("./Gen.txt", "w");
 
-	//把绩点写入文件，格式(只写等级1、2、3、5的人的学号，其余人为等级4):
+	//把成绩写入文件，格式(只写等级1、2、3、5的人的学号，其余人为等级4):
 	//jd1=2,3,8, ...
 	//jd2=6,35,56, ..
 	//jd3=...
