@@ -45,7 +45,7 @@ int IsQueXi(int no, int ke, int ci, const map<int, map<int, set<int> > > &data)
 struct XueSheng
 {
 	int no;//学号
-	int jd;//绩点
+	int jd;//等级
 	int cnt[6];//该生五门课程的缺席数.0号元素不用
 	int Notcnt[6];//该生五门课程的未缺席数.0号元素不用
 	double gailu;//缺席的概率
@@ -65,19 +65,19 @@ double JiSuanGaiLv(int jd, int cnt, int Notcnt)
 
 	double gailu=0;
 	if(jd==1)
-	{//绩点1的学生(学渣)缺席所有(5门)课程90%的课次
+	{//等级1的学生(学渣)缺席所有(5门)课程90%的课次
 		gailu= (double)(18-cnt)/(20-cnt-Notcnt);					
 	}
 	else if(jd==2)
-	{//绩点2的学生(准学渣)缺席4门课程80%的课次
+	{//等级2的学生(准学渣)缺席4门课程80%的课次
 		gailu= ((double)16*0.8-cnt)/(20-cnt-Notcnt);
 	}
 	else if(jd==3)
-	{//绩点3的学生(后进生)缺席1门课程80%的课次
+	{//等级3的学生(后进生)缺席1门课程80%的课次
 		gailu= ((double)4*0.8-cnt)/(20-cnt-Notcnt);				
 	}
 	else if(jd==4)
-	{//绩点4的学生(普通生)，每门课都有0-3其他原因缺席的学生
+	{//等级4的学生(普通生)，每门课都有0-3其他原因缺席的学生
 		gailu=(1.5/90*20 - cnt)/(20-cnt-Notcnt);
 	}
 	else
@@ -89,10 +89,10 @@ double JiSuanGaiLv(int jd, int cnt, int Notcnt)
 
 int main(int argc, char *argv[])
 {
-	set<int>jd1s;//绩点1的学生集合
-	set<int>jd2s;//绩点2的学生集合
-	set<int>jd3s;//绩点3的学生集合
-	set<int>jd5s;//绩点5的学生集合
+	set<int>jd1s;//等级1的学生集合
+	set<int>jd2s;//等级2的学生集合
+	set<int>jd3s;//等级3的学生集合
+	set<int>jd5s;//等级5的学生集合
 	set<int> *pjd=NULL;
 
 	//<课程, <课次, <缺席号集> >
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 		//2_12=17,39,57,59,64,79,
 		int ke,ci;//课号，次数
 		if(in<4)
-		{//开头4行是绩点信息
+		{//开头4行是等级信息
 			int tmp=0;
 			sscanf(line, "jd%d=", &tmp);
 			if(tmp==1)
@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
 			*end=0;
 
 			if(in<4)
-			{//开头4行是绩点信息
+			{//开头4行是等级信息
 				pjd->insert(atoi(start));
 			}
 			else
