@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
 				{
 					break;
 				}
-				if(j>=5 && mm > 10 && (double)currQueXi/90 < 0.60)
+				if(j>=5 && mm > 10 && (double)currQueXi/mm < 0.60)
 				{
 					break;
 				}	
